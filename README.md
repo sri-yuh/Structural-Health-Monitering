@@ -178,7 +178,7 @@ Full reference list is provided in the manuscript.
 
 ## Manuscript
 
-See the accompanying manuscript for the full methodology, ablation analyses, and discussion.
+See the accompanying manuscript for the full methodology, experiments analyses, and discussion.
 
 ---
 
@@ -198,4 +198,3 @@ Project supervisor: Dr. Harpreet Singh Bedi
 
 ---
 
-*If you use this code or framework in your work, please cite the accompanying manuscript.*
