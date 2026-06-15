@@ -46,7 +46,7 @@ Reported under realistic noise addition:
 | CNN classifier (σ = 0.30·⟨\|x\|⟩) | 0.98 | 0.98 |
 | LSTM classifier (σ = 0.60·⟨\|x\|⟩) | 0.97 | 0.97 |
 
-** Adding Feature condition :** Both architectures achieve **1.000** accuracy under noise-free FEA simulations, reflecting the strong separability of cutout damage in clean modal data.
+**Adding Feature condition :** Both architectures achieve **1.000** accuracy under noise-free FEA simulations, reflecting the strong separability of cutout damage in clean modal data.
 
 ### Localization & Quantification (Levels 2 & 3)
 
@@ -59,7 +59,7 @@ Reported under realistic noise addition:
 ### Experiments
 
 - **Y-offset :** Adding off-centreline (Y2–Y8) measurements improves Dy MAE.
-- **Forcing-displacement:** The framework achieves **100 % Acc, F1 cross-band** (train on lowest amplitude tercile, test on highest), confirming amplitude invariance.
+- **Forcing-displacement:** The framework achieves **100 % Acc, F1 cross-band** (train on lowest amplitude, test on highest), confirming amplitude invariance.
 
 ---
 
@@ -107,13 +107,13 @@ The dataset consists of approximately **4,700 finite-element simulations** gener
 
 ## Classification Pipeline (Level 1)
 
-The classifier is deliberately **starved of engineered features** — it sees only the Modal and Response. This forces both networks to learn the damage signature purely from the dynamic response, providing an unbiased evaluation of the deep architectures rather than of the engineered features.
+The classifier is deliberately **starved of engineered features** — it sees only the Modal and Response datasets. This forces both networks to learn the damage signature purely from the dynamic response, providing an unbiased evaluation of the deep architectures rather than of the engineered features.
 
 | Stage | Configuration |
 |---|---|
 | Pool construction | 580 healthy + 580 damaged = 1,160 balanced samples |
 | Train/test split | Group-aware on (Dx, Dy, R); 927 train / 235 test |
-| Inputs | Modal (256 × 10) + Response (256 × 1) — no spatial branch |
+| Inputs | Modal (256 × 10) + Response (256 × 1)  (no spatial branch) |
 | Training augmentation | Mixup (α = 0.4, n_extra = 2) + 1 % training noise |
 | Inference noise | Noisy forward pass — σ = 0.30·⟨\|x\|⟩ (CNN), σ = 0.60·⟨\|x\|⟩ (LSTM) |
 
@@ -126,13 +126,13 @@ The classifier is deliberately **starved of engineered features** — it sees on
 | Per-mode curvature peak position | 10 | beam pos argmax \|κ(x)\| per mode |
 | Per-mode curvature peak value | 10 | max \|κ(x)\| per mode |
 | Per-mode curvature weighted average | 10 | ∫x\|κ\|dx / ∫\|κ\|dx |
-| Overall beam-wide curvature centroid | 1 | sum across all modes |
+| Overall beam-wide curvature weighted average | 1 | weighted average across all 10 modes |
 | Sensor offset | 1 | scalar metadata |
 | Per-mode frequency delta | 10 | Δfₙ = fₙ_test − fₙ_healthy |
 | Per-mode TKEO peak position | 10 | argmax Ψ[φₙ(x)] |
 | Per-mode L/R energy contrast | 10 | (E_R − E_L) / (E_R + E_L) |
 | Per-mode baseline-residual norm | 10 | ‖φₙ − ⟨φₙ⟩_healthy‖₂ |
-| Mode-1 Kim 2003 extras | 6 | additional Mode-1 sensitivity features |
+| Mode-1 extra features | 6 | additional Mode-1 sensitivity features |
 | **TOTAL** | **78** | |
 
 All features are amplitude-invariant by construction (ratios, peak positions, baseline differences, and quantities computed on L2-normalized inputs).
