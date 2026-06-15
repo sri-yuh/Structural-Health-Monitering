@@ -1,8 +1,8 @@
-# Engineered, Interpretable, Amplitude-Invariant SHM of a Cantilever Beam
+# SHM of a Cantilever Beam
 
-> Vibration-based Structural Health Monitoring framework that performs **damage detection, localization, and quantification** on a clamped–free cantilever beam using a 78-dimensional engineered feature vector and a hybrid CNN + LSTM + Gradient Boosting ensemble.
+> Vibration-based Structural Health Monitoring framework that performs **damage detection, localization, and quantification** on a cantilever beam using a 78-dimensional engineered feature vector and a hybrid CNN + LSTM + Gradient Boosting ensemble.
 
-A final-year project at BITS Pilani, Dubai Campus (CS F366) under the supervision of Dr. Harpreet Singh Bedi.
+A final-year project at BITS Pilani, Dubai Campus (CS F366) under the supervision of Dr. Satya Jaswanth and Dr. Harpreet Singh Bedi.
 
 ---
 
@@ -12,7 +12,7 @@ This project addresses the first three levels of Rytter's damage-identification 
 
 | Level | Task | Approach |
 |---|---|---|
-| **1 — Detection** | Is the beam damaged? | Binary classifier (CNN + LSTM) on raw modal + FRF signals |
+| **1 — Detection** | Is the beam damaged? | Binary classifier (CNN + LSTM) on Modal + Response signals |
 | **2 — Localization** | Where is the damage? | Regression on (Dx, Dy) coordinates with 78-D engineered features |
 | **3 — Quantification** | How severe is it? | Regression on cutout radius r |
 
@@ -23,44 +23,43 @@ The beam is a 100 × 10 × 1 mm aluminium cantilever with a single circular thro
 ## Key Features
 
 - **78-dimensional engineered feature vector** — physically interpretable, mathematically amplitude-invariant by construction (used by the regressors)
-- **Raw-signals-only classifier** — CNN and LSTM detectors learn directly from modal sequences and FRF, providing an unbiased evaluation of the deep architectures
+- **Signals-only classifier** — CNN and LSTM detectors learn directly from Modal Edge displacment and Response, providing an unbiased evaluation of the deep architectures
 - **Balanced classifier pool** — equal healthy and damaged samples eliminate class-prior bias
 - **Group-aware data split** — keyed on (Dx, Dy, R), eliminates >99 % R² leakage from physical-cutout duplicates across train and test
-- **Per-target specialists** — Bagged XGBoost for Dx, LightGBM for Dy, HistGradientBoosting for radius
-- **Residual learning rule** — deep models learn residuals over gradient-boosting bases when inner-validation R² > 0.5, else absolute targets
-- **Mixup at training, Test-Time Augmentation at inference** — variance reduction without changing the architecture
-- **Realistic noise evaluation** — single noisy forward pass at inference simulates accelerometer noise, displacing accuracy from the clean-FEA upper bound to realistic submission numbers
-- **Two empirical ablations** — verify the bending–torsion coupling hypothesis (Nguyen 2014) and amplitude invariance (Worden Axiom V, 2007)
+- **Per-target models** — Bagged XGBoost for Dx, LightGBM for Dy, HistGradientBoosting for radius
+- **Residual learning rule** — deep models learn residuals over ML base models when inner-validation R² > 0.5, else absolute targets
+- **Mixup at training, Test-Time Augmentation at inference** — variance reduction without changing the architecture noisy data generated at inputs, to create variance which then the mean is calculated for.
+- **Two experiments** — verify the (offset) and (forcing displacement on the free end)
 
 ---
 
 ## Results
 
-All metrics on the **held-out group-aware test set** (306 unseen physical cutouts for regression; 235-sample balanced test set for classification):
+All metrics on the **held-out group-aware test set** :
 
 ### Detection (Level 1)
 
-Reported under realistic sensor-noise evaluation (single noisy forward pass at inference):
+Reported under realistic noise addition:
 
 | Model | Accuracy | F1 |
 |---|---|---|
 | CNN classifier (σ = 0.30·⟨\|x\|⟩) | 0.98 | 0.98 |
 | LSTM classifier (σ = 0.60·⟨\|x\|⟩) | 0.97 | 0.97 |
 
-**Clean-condition upper bound:** Both architectures achieve **1.000** accuracy under noise-free FEA simulations, reflecting the strong separability of cutout damage in clean modal data.
+** Adding Feature condition :** Both architectures achieve **1.000** accuracy under noise-free FEA simulations, reflecting the strong separability of cutout damage in clean modal data.
 
 ### Localization & Quantification (Levels 2 & 3)
 
 | Target | Best model | MAE | R² |
 |---|---|---|---|
-| **Dx (length-wise)** | CNN regressor + Bagged XGBoost residual | 2.09 mm | +0.986 |
-| **Dy (breadth-wise)** | LSTM regressor + LightGBM absolute | 1.03 mm | +0.41 |
-| **Radius** | HistGradientBoosting + CNN residual | 0.024 mm | +0.98 |
+| **Dx (length-wise)** | CNN, LSTM regressor, Bagged XGBoost residual | 2.09 mm | +0.986 |
+| **Dy (breadth-wise)** | CNN, LSTM regressor, (LightGBM- tried) absolute | 1.03 mm | +0.41 |
+| **Radius** | HistGradientBoosting + CNN, LSTM residual | 0.024 mm | +0.98 |
 
-### Ablation studies
+### Experiments
 
-- **Y-offset ablation:** Adding off-centreline (Y2–Y8) measurements improves Dy MAE by **+8.7 %** — confirming the bending–torsion coupling argument of Nguyen (2014)
-- **Forcing-amplitude ablation:** The framework achieves **100 % F1 cross-band** (train on lowest amplitude tercile, test on highest), confirming amplitude invariance — empirical validation of Axiom V (Worden et al. 2007)
+- **Y-offset :** Adding off-centreline (Y2–Y8) measurements improves Dy MAE.
+- **Forcing-displacement:** The framework achieves **100 % Acc, F1 cross-band** (train on lowest amplitude tercile, test on highest), confirming amplitude invariance.
 
 ---
 
@@ -69,7 +68,6 @@ Reported under realistic sensor-noise evaluation (single noisy forward pass at i
 ```
 .
 ├── SHM_FINAL.ipynb              # Main pipeline notebook (end-to-end)
-├── Ablation_Study.ipynb         # Standalone ablation notebook (companion)
 ├── training_data_v2.zip         # Dataset (Abaqus FEA outputs)
 └── README.md
 ```
@@ -81,7 +79,7 @@ Reported under realistic sensor-noise evaluation (single noisy forward pass at i
 1. **Open the main notebook** in [Google Colab](https://colab.research.google.com/)
 2. **Switch runtime to GPU** (Runtime → Change runtime type → T4 GPU)
 3. **Run the upload cell** and upload `training_data_v2.zip` when prompted
-4. **Run all cells top-to-bottom** (Runtime → Run all). Total runtime: ~15 minutes on a T4 GPU.
+4. **Run all cells top-to-bottom** (Runtime → Run all). 
 
 The notebook handles all dependencies via `pip install` cells.
 
@@ -91,8 +89,8 @@ The notebook handles all dependencies via `pip install` cells.
 
 The dataset consists of approximately **4,700 finite-element simulations** generated in Abaqus. Each sample contains:
 
-- **Modal report** — first 10 mode shapes sampled at 256 spatial points
-- **Response report** — frequency response function (FRF) magnitude at 256 frequency points
+- **Modal report** — first 10 mode shapes sampled at 256 spatial points, L2 Norm
+- **Response report** — frequency response function (FRF) magnitude at 256 frequency points, L2 Norm
 - **Frequency report** — first 10 natural frequencies
 
 ### Damage parameter ranges
@@ -103,21 +101,21 @@ The dataset consists of approximately **4,700 finite-element simulations** gener
 | Dy (transverse centre) | [−3.4, +3.5] mm |
 | Cutout radius r | [0.05, 1.0] mm |
 | Sensor Y-offset | {0, 1.25, 2.5, 3.75, 5.0} mm |
-| Forcing amplitude | 1 × 10 mm to 474 × 10 mm (~3 decades) |
+| Forcing displacments | 1 × 10 mm to 474 × 10 mm |
 
 ---
 
 ## Classification Pipeline (Level 1)
 
-The classifier is deliberately **starved of engineered features** — it sees only the raw modal sequences and FRF magnitudes. This forces both networks to learn the damage signature purely from the dynamic response, providing an unbiased evaluation of the deep architectures rather than of the engineered features.
+The classifier is deliberately **starved of engineered features** — it sees only the Modal and Response. This forces both networks to learn the damage signature purely from the dynamic response, providing an unbiased evaluation of the deep architectures rather than of the engineered features.
 
 | Stage | Configuration |
 |---|---|
 | Pool construction | 580 healthy + 580 damaged = 1,160 balanced samples |
 | Train/test split | Group-aware on (Dx, Dy, R); 927 train / 235 test |
-| Inputs | Raw modal (256 × 10) + FRF (256 × 1) — no spatial branch |
+| Inputs | Modal (256 × 10) + Response (256 × 1) — no spatial branch |
 | Training augmentation | Mixup (α = 0.4, n_extra = 2) + 1 % training noise |
-| Inference noise | Single noisy forward pass — σ = 0.30·⟨\|x\|⟩ (CNN), σ = 0.60·⟨\|x\|⟩ (LSTM) |
+| Inference noise | Noisy forward pass — σ = 0.30·⟨\|x\|⟩ (CNN), σ = 0.60·⟨\|x\|⟩ (LSTM) |
 
 ---
 
@@ -125,11 +123,11 @@ The classifier is deliberately **starved of engineered features** — it sees on
 
 | Family | Count | Description |
 |---|---|---|
-| Per-mode curvature peak position | 10 | argmax \|κ(x)\| per mode |
+| Per-mode curvature peak position | 10 | beam pos argmax \|κ(x)\| per mode |
 | Per-mode curvature peak value | 10 | max \|κ(x)\| per mode |
 | Per-mode curvature weighted average | 10 | ∫x\|κ\|dx / ∫\|κ\|dx |
 | Overall beam-wide curvature centroid | 1 | sum across all modes |
-| Sensor offset / forcing-amplitude scalar | 1 | scalar metadata |
+| Sensor offset | 1 | scalar metadata |
 | Per-mode frequency delta | 10 | Δfₙ = fₙ_test − fₙ_healthy |
 | Per-mode TKEO peak position | 10 | argmax Ψ[φₙ(x)] |
 | Per-mode L/R energy contrast | 10 | (E_R − E_L) / (E_R + E_L) |
@@ -152,15 +150,13 @@ All randomness is seeded to `42`:
 
 XGBoost and LightGBM use `n_jobs=1` during Optuna hyperparameter search to ensure deterministic tree construction.
 
-File-listing order is fixed by `sorted()` calls during dataset loading.
-
 ---
 
 ## Key References
 
 | Ref | Used for |
 |---|---|
-| Rytter 1993 | 4-level damage-identification hierarchy |
+| Rytter 1993 | Damage-identification hierarchy |
 | Pandey, Biswas & Samman 1991 | Modal curvature as damage indicator |
 | Kaiser 1990 | Teager–Kaiser Energy Operator |
 | Kim et al. 2003 | Mode-1 sensitivity features |
@@ -176,7 +172,7 @@ File-listing order is fixed by `sorted()` calls during dataset loading.
 | Abdeljaber et al. 2017 | 1-D CNN for vibration-based SHM |
 | Kingma & Ba 2014 | Adam optimizer |
 
-Full reference list with DOIs is provided in the manuscript.
+Full reference list is provided in the manuscript.
 
 ---
 
@@ -191,12 +187,6 @@ See the accompanying manuscript for the full methodology, ablation analyses, and
 **Sriya Sanagala** — 2022A7PS0101U
 BITS Pilani, Dubai Campus — Computer Science
 Project supervisor: Dr. Harpreet Singh Bedi
-
----
-
-## License
-
-This project is released under the MIT License. See `LICENSE` for details.
 
 ---
 
